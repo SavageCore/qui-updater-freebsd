@@ -17,7 +17,7 @@ QUI_GROUP="quiuser"
 QUI_HOME="/home/quiuser"
 RC_SCRIPT_PATH="/usr/local/etc/rc.d/qui"
 RC_SCRIPT_URL="https://raw.githubusercontent.com/SavageCore/qui-updater-freebsd/main/rc.d/qui"
-SCRIPT_VERSION="0.0.0"
+SCRIPT_VERSION="0.1.0"
 QBITTORRENT_PKG="qbittorrent-nox"
 
 # Colors for output

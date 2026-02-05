@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Check if shellcheck is installed
+if ! command -v shellcheck >/dev/null 2>&1; then
+    echo "Warning: shellcheck not found. Skipping linting."
+    echo "Install it via: choco install shellcheck"
+    exit 0
+fi
+
+# Get list of staged .sh files
+STAGED_SH_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.sh$')
+
+if [ -n "$STAGED_SH_FILES" ]; then
+    echo "Running ShellCheck..."
+    # Match severity and exclusions from GitHub Action
+    # Example: shellcheck -e SC1091 $STAGED_SH_FILES
+    if ! shellcheck -e SC1091 "$(echo "$STAGED_SH_FILES" | tr '\n' ' ')"; then
+        echo "Error: ShellCheck failed. Please fix the issues before committing."
+        exit 1
+    fi
+fi

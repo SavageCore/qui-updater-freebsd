@@ -1,0 +1,4 @@
+# Enforce LF endings only for shell scripts
+*.sh text eol=lf
+rc.d/* text eol=lf
+.githooks/* text eol=lf

@@ -1,0 +1,128 @@
+#!/bin/sh
+# shellcheck shell=sh
+#
+# PROVIDE: qui
+# REQUIRE: LOGIN networking
+# KEYWORD: shutdown
+
+# shellcheck disable=SC1091
+. /etc/rc.subr
+
+name="qui"
+# shellcheck disable=SC2034
+rcvar=qui_enable
+
+# shellcheck disable=SC1091
+load_rc_config $name
+
+# shellcheck disable=SC2154
+: ${qui_enable:="NO"}
+: ${qui_user:="quiuser"}
+: ${qui_command:="/usr/local/bin/qui serve"}
+: ${qui_logfile:="/home/${qui_user}/qui.log"}
+: ${screen_name:="qui"}
+
+# shellcheck disable=SC2034
+start_cmd="${name}_start"
+# shellcheck disable=SC2034
+stop_cmd="${name}_stop"
+# shellcheck disable=SC2034
+status_cmd="${name}_status"
+# shellcheck disable=SC2034
+restart_cmd="${name}_restart"
+# shellcheck disable=SC2034
+extra_commands="status"
+
+qui_start() {
+    _quiet=${1:-}
+
+    # Check if screen is installed (check common paths)
+    if [ ! -x /usr/local/bin/screen ] && [ ! -x /usr/bin/screen ]; then
+        echo "Error: screen is not installed. Install with: pkg install screen"
+        return 1
+    fi
+
+    # Check if binary exists
+    binary_path=$(echo "${qui_command}" | cut -d' ' -f1)
+    if [ ! -x "${binary_path}" ]; then
+        echo "Error: ${binary_path} not found or not executable"
+        return 1
+    fi
+
+    # Kill any existing screen session with the same name
+    su - "${qui_user}" -c "screen -S ${screen_name} -X quit" >/dev/null 2>&1
+
+    # Also kill any running qui processes
+    pkill -U "${qui_user}" -f "qui serve" 2>/dev/null
+
+    sleep 1
+
+    # Start qui in detached screen and redirect output
+    su - "${qui_user}" -c "screen -dmS ${screen_name} /bin/sh -c '${qui_command} >> ${qui_logfile} 2>&1'"
+
+    # Verify it started
+    sleep 1
+    if pgrep -U "${qui_user}" -f "qui serve" >/dev/null; then
+        [ -z "${_quiet}" ] && echo "${name} started"
+        return 0
+    else
+        echo "Error: ${name} failed to start. Check ${qui_logfile}"
+        return 1
+    fi
+}
+
+qui_stop() {
+    _quiet=${1:-}
+
+    # First, try to kill the qui process gracefully (SIGTERM)
+    pkill -TERM -U "${qui_user}" -f "qui serve" 2>/dev/null
+
+    # Wait a moment for graceful shutdown
+    sleep 2
+
+    # Force kill if still running
+    if pgrep -U "${qui_user}" -f "qui serve" >/dev/null; then
+        pkill -9 -U "${qui_user}" -f "qui serve" 2>/dev/null
+        sleep 1
+    fi
+
+    # Clean up the screen session
+    su - "${qui_user}" -c "screen -S ${screen_name} -X quit" >/dev/null 2>&1
+
+    [ -z "${_quiet}" ] && echo "${name} stopped"
+}
+
+qui_status() {
+    if pgrep -U "${qui_user}" -f "qui serve" >/dev/null; then
+        echo "${name} is running"
+        return 0
+    else
+        echo "${name} is not running"
+        return 1
+    fi
+}
+
+qui_restart() {
+    qui_stop quiet || true  # Don't fail if not running
+
+    # Wait for process to fully stop (up to 5 seconds)
+    _count=0
+    while pgrep -U "${qui_user}" -f "qui serve" >/dev/null && [ ${_count} -lt 5 ]; do
+        sleep 1
+        _count=$((_count + 1))
+    done
+
+    if pgrep -U "${qui_user}" -f "qui serve" >/dev/null; then
+        echo "Error: ${name} failed to stop"
+        return 1
+    fi
+
+    if qui_start quiet; then
+        echo "${name} restarted"
+        return 0
+    else
+        return 1
+    fi
+}
+
+run_rc_command "$1"

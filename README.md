@@ -7,10 +7,10 @@ An automated update script for [qui](https://github.com/autobrr/qui) (qBittorren
 ## Features
 
 - 🚀 Automatic download and installation of the latest qui release
-- � Automatic updates for `qbittorrent-nox` via `pkg`
-- �🔧 First-run setup: creates `quiuser`, installs services, and enables them
+- 🔄 Automatic updates for `qbittorrent-nox` via `pkg`
+- 🛠️ First-run setup: creates `quiuser`, installs services, and enables them
 - 💾 Automatic backup of previous qui versions (keeps last 5)
-- 🔄 Service management (stop/start during updates)
+- 🔁 Service management (stop/start during updates)
 - ✅ Version checking to skip unnecessary updates
 
 ## Requirements
